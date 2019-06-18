@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="post">
+
+	<!-- 게시글 등록 -->
+	<insert id="insertPost" parameterType="postVO">
+		INSERT INTO	POSTS
+		(
+			PO_SEQ
+		   ,SEQ
+		   ,USERID
+		   ,PARENT_SEQ
+		   ,TITLE
+		   ,CONTENT
+		   ,WT_DT
+		   ,DELETE_YN
+		   ,GROUP_SEQ
+		)
+		VALUES
+		(
+			POSTS_SEQ.NEXTVAL
+		   ,#{seq}
+		   ,#{userId}
+		   ,null
+		   ,#{title}
+		   ,#{content}
+		   ,#{wt_dt}
+		   ,'N'
+		   ,POSTS_SEQ.CURRVAL
+		)
+	</insert>
+	
+	<!-- 방금 생성한 게시글의 게시글번호 -->
+	<select id="getPostSeq" resultType="int">
+		SELECT 	LAST_NUMBER - 1
+		FROM 	USER_SEQUENCES 
+		WHERE 	SEQUENCE_NAME = 'POSTS_SEQ'
+	</select>
+
+	<!-- 게시글 등록기능의 첨부파일 등록하기 -->
+	<insert id="insertAttachFile" parameterType="fileVO">
+		INSERT INTO ATTACH_FILE
+		(
+			FILE_SEQ
+		   ,PO_SEQ
+		   ,PATH
+		   ,FILENAME
+		)
+		VALUES
+		(
+			ATTACH_FILE_SEQ.NEXTVAL
+		   ,#{po_seq}
+		   ,#{path}
+		   ,#{filename}
+		)
+	</insert>
+
+	<!-- 게시글 조회 -->
+	<select id="getPostInfo" parameterType="map" resultType="postVO">
+		SELECT	PO_SEQ
+			   ,SEQ
+			   ,USERID
+		       ,NVL(PARENT_SEQ, 0) parent_seq
+			   ,TITLE
+			   ,CONTENT
+			   ,WT_DT
+			   ,DELETE_YN
+			   ,GROUP_SEQ
+		FROM	POSTS
+		WHERE	PO_SEQ = #{po_seq}
+		AND		SEQ = #{seq}
+	</select>
+	
+	<!-- 조회하는 해당 게시글의 첨부파일 리스트 조회 -->
+	<select id="getAttatchFiles" parameterType="int" resultType="fileVO">
+		SELECT	*
+		FROM	ATTACH_FILE
+		WHERE	PO_SEQ = #{po_seq}
+	</select>
+
+
+	<!-- 게시글 페이지 리스트 조회 -->
+	<!-- pageVO => int page, int pageSize -->
+	<select id="postPagingList" parameterType="pageVO" resultType="postVO">
+		<![CDATA[
+	 	SELECT  B.*
+		FROM
+		(
+			SELECT	A.*, ROWNUM RN
+			FROM(	SELECT  	P.PO_SEQ
+							   ,P.SEQ, P.USERID
+							   ,NVL(PARENT_SEQ, 0) PARENT_SEQ
+						  	   ,LPAD('└▶', (LEVEL-1)*4) || P.TITLE TITLE
+						  	   ,CONTENT
+						  	   ,WT_DT
+						  	   ,DELETE_YN
+						  	   ,GROUP_SEQ
+						  	   ,LEVEL
+					FROM    POSTS P
+					WHERE   SEQ=#{seq}
+					START WITH P.PARENT_SEQ IS NULL
+					CONNECT BY PRIOR P.PO_SEQ = P.PARENT_SEQ
+					ORDER SIBLINGS BY P.GROUP_SEQ DESC, P.PO_SEQ  ) A
+		) B
+		WHERE   B.RN >= ( #{page} - 1) * #{pageSize} + 1 
+		AND 	B.RN <= #{page} * #{pageSize}
+	 	]]>
+	</select>
+
+	<!-- 해당 게시판 전체 게시글의 수 조회 -->
+	<!-- SQL 튜닝 성능개선 -->
+	<select id="postsCnt" parameterType="int" resultType="int">
+		SELECT	/*+ INDEX(posts PK_POSTS)*/COUNT(*)
+		FROM	POSTS
+		WHERE	SEQ = #{seq}
+	</select>
+	
+	<update id="updatePostInfo" parameterType="postVO">
+		UPDATE	POSTS
+		SET		TITLE = #{title}
+			   ,CONTENT	= #{content}
+		WHERE	PO_SEQ = #{po_seq}
+	</update>
+	
+	
+	<!-- 수정 시 해당게시글의 모든 첨부파일 정보 삭제 -->
+	<delete id="deleteAttachFile" parameterType="int">
+		DELETE FROM	ATTACH_FILE
+		WHERE	PO_SEQ = #{po_seq}
+	</delete>
+	
+	
+	<!-- 답글 등록하기 -->
+	<insert id="insertAnswer" parameterType="postVO">
+		INSERT INTO POSTS
+		(
+			PO_SEQ
+		   ,SEQ
+		   ,USERID
+		   ,PARENT_SEQ
+		   ,TITLE
+		   ,CONTENT
+		   ,WT_DT
+		   ,DELETE_YN
+		   ,GROUP_SEQ
+		)
+		VALUES
+		(
+			POSTS_SEQ.NEXTVAL
+		   ,#{seq}		
+		   ,#{userId}
+		   ,#{parent_seq}		
+		   ,#{title}		
+		   ,#{content}		
+		   ,#{wt_dt}
+		   ,'N'
+		   ,#{group_seq}		
+		)
+	</insert>
+	
+	<!-- 게시글 삭제 처리 -->
+	<update id="deletePost" parameterType="int">
+		UPDATE	POSTS
+		SET		DELETE_YN = 'Y'
+		WHERE	PO_SEQ = #{po_seq}
+	</update>
+	
+</mapper>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="file">
+	
+	<select id="getFileInfo" parameterType="int" resultType="fileVO">
+		SELECT	*
+		FROM	ATTACH_FILE
+		WHERE	FILE_SEQ = #{file_seq}
+	</select>
+
+	<delete id="deleteExistingFile" parameterType="map">
+		DELETE FROM ATTACH_FILE
+		WHERE   PO_SEQ = #{po_seq}
+		<choose>
+			<when test="existingFilesList.size > 0">
+				AND 	FILE_SEQ NOT IN 
+				<foreach collection="existingFilesList" item="item" index="index" open="(" close=")" separator=",">
+					#{item}
+				</foreach>
+			</when>
+		</choose>
+		     
+	</delete> 
+
+</mapper>

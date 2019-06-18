@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="reply">
+
+	<select id="getReplys" parameterType="int" resultType="replyVO"> 
+		SELECT	*
+		FROM	REPLYS
+		WHERE	po_SEQ = #{po_seq}
+		ORDER BY RE_SEQ ASC
+	</select>
+
+	<insert id="insertReply" parameterType="replyVO">
+		INSERT INTO REPLYS
+		(
+			RE_SEQ
+		   ,PO_SEQ
+		   ,CONTENT
+		   ,WT_DT
+		   ,USERID
+		   ,DELETE_YN
+		)
+		VALUES
+		(
+			REPLYS_SEQ.NEXTVAL
+		   ,#{po_seq}
+		   ,#{content}
+		   ,#{wt_dt}
+		   ,#{userId}
+		   ,'N'
+		)
+	</insert>
+	
+	<update id="deleteReply" parameterType="int">
+		UPDATE 	REPLYS
+		SET		DELETE_YN = 'Y'
+		WHERE	RE_SEQ = #{re_seq}
+	</update>
+
+</mapper>
